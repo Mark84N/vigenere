@@ -17,43 +17,44 @@ using std::endl;
 #define FILENAME ENCRYPTED
 
 std::vector<double> eng_normal_freq = {
-	8.12, /* A */
-	1.49,
-	2.71,
-	4.32,
-	12.02,
-	2.30,
-	2.03,
-	5.92,
-	7.31,
-	0.10,
-	0.69,
-	3.98,
-	2.61,
-	6.95,
-	7.68,
-	1.82,
-	0.11,
-	6.02,
-	6.28,
-	9.10,
-	2.88,
-	1.11,
-	2.09,
-	0.17,
-	2.11,
+	8.12, /*A*/
+	1.49, /*B*/
+	2.71, /*C*/
+	4.32, /*D*/
+	12.02, /*E*/
+	2.30, /*F*/
+	2.03, /*G*/
+	5.92, /*H*/
+	7.31, /*I*/
+	0.10, /*J*/
+	0.69, /*K*/
+	3.98, /*L*/
+	2.61, /*M*/
+	6.95, /*N*/
+	7.68, /*O*/
+	1.82, /*P*/
+	0.11, /*Q*/
+	6.02, /*R*/
+	6.28, /*S*/
+	9.10, /*T*/
+	2.88, /*U*/
+	1.11, /*V*/
+	2.09, /*W*/
+	0.17, /*X*/
+	2.11, /*Y*/
 	0.07 /* Z */
 };
 
-/*
-* Will be used to access eng_normal_freq by index
+
+/* 
+*	Will be used to access eng_normal_freq by index
 */
 static inline int letter_to_idx(int letter)
 {
 	return letter - 'A';
 }
 
-static std::string remove_spaces_and_punct(const std::string &buf)
+static std::string remove_not_letters(const std::string &buf)
 {
 	std::string out(buf.size(), 0);
 	std::remove_copy_if(buf.begin(), buf.end(), out.begin(),
@@ -80,8 +81,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-// remove spaces and punctuation
-	std::string out(std::move(remove_spaces_and_punct(buf)));
+	std::string out(std::move(remove_not_letters(buf)));
 // convert to uppercase
 	std::for_each(out.begin(), out.end(), [](char &ch) { if (isalpha(ch)) ch = toupper(ch); });
 
@@ -94,22 +94,19 @@ int main(int argc, char **argv)
 /*
 	Now if key length was guessed correctly, then traversing the text with a step of key length, will produce
 	the sequence of chars, which were encrypted by the same letter of the key, and we would try to guess what is 
-	it based on the using frequency of each particular English letter
+	it
 */
 	std::vector<int> traversal;
-	std::vector<double> freq_per_shift;
-	
+
 	int key_idx = 0;
 	for (int key_idx = 0; key_idx < key_len_1; key_idx++) {
 		
-		int shift = 0;
 		/* new traversal on each iteration */
-		// ------------------------------------------------------------------
 		for (int i = key_idx; i < out.length(); i += key_len_1) {
 			traversal.push_back(out[i]);
 		}
-		freq_per_shift.resize(traversal.size());
-
+/*		freq_per_shift.resize(traversal.size());
+*/
 		// Calculate the qty of appearing of the each particular letter in the traversal
 		std::vector<int> times_matched(26, 0);
 		cout << "Traversal len is " << traversal.size() << ", current traversal:";
@@ -129,7 +126,8 @@ int main(int argc, char **argv)
 		for (int i = 0; i < traversal.size(); i++) {
 			char ch = traversal[i];
 			freq_per_traversal[i] = times_matched[letter_to_idx(ch)] / traversal_size;
-			cout << "freq_per_traversal[" << i << "] = " << freq_per_traversal[i] << endl;
+			cout << "freq_per_traversal[" << i << "] = " << freq_per_traversal[i] << 
+			" (matched " << times_matched[letter_to_idx(ch)] <<  "times)"<< endl;
 		}
 		cout << "freq_per_traversal.len() = " << freq_per_traversal.size() << endl;
 /*	
@@ -142,34 +140,41 @@ int main(int argc, char **argv)
 
 		multiplying corresponding freq_per_traversal by eng_normal_freq and summing results up, will
 		provide us of kinda probability value; comparing those values after all shiftings, the max one
-		will probably be the shift of corresponding letter in the key against original letter in the text
+		will probably be the shift of corresponding letter in the key against the original letter in the text
 */
+		double sum = 0;
+		double max = 0;
+		int target_dist = 0;
+		int shift = 0;
+
 		do {
-			double sum = 0;
+			sum = 0;
+
 			for (int i = 0; i < traversal.size(); i++) {
 				char ch = traversal[i];
 				sum += freq_per_traversal[i] * (eng_normal_freq[letter_to_idx(ch)] / 100);
+				if (i == 0)
+					cout << "Freq of Q: " << freq_per_traversal[i] * (eng_normal_freq[letter_to_idx(ch)] / 100) << endl;
 			}
-			freq_per_shift[shift++] = sum;
 			cout << "Shifted " << shift << ", total sum of freq is " << sum << endl;
+
+			if (sum > max) {
+				max = sum;
+				target_dist = shift;
+			}
 			/* actual shift: move from the front to the end */
 			auto tmp = freq_per_traversal.front();
 			freq_per_traversal.pop_front();
 			freq_per_traversal.push_back(tmp);
-		} while(shift < traversal.size());
+			shift++;
+		} while (shift < traversal.size());
 
-/*		for (auto x: freq_per_shift) {
-			cout << "shift: freq = " << x << endl; 
-		}*/
-
-std::max_element(freq_per_shift.begin(), freq_per_shift.end());
+		cout << "target_dist == " << target_dist << " on max freq of " << max << endl;
+		cout << "Thus shift produced by key is most likely " << (target_dist + 0) % 26 << endl;
 
 		traversal.clear();
 		freq_per_traversal.clear();
-		freq_per_shift.clear();
 		shift = 0;
-
-		
 		break;
 	}
 

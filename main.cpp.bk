@@ -1,0 +1,119 @@
+#include <iostream>
+#include <fstream>
+#include <cctype>
+#include <string>
+#include <algorithm>
+#include <cstring>
+#include <map>
+#include <vector>
+
+using std::cout;
+using std::cerr;
+using std::endl;
+
+#define EXAMPLE "example"
+#define ENCRYPTED "encrypted3"
+#define FILENAME ENCRYPTED
+
+int main(int argc, char **argv)
+{
+	std::ifstream   file;
+	std::string     buf;
+	std::streampos  file_length;
+
+	file.open(FILENAME, std::ios::in | std::ios::ate);
+	if (!file.is_open()) {
+		cerr << "Failed to open file \"" << FILENAME << "\"" << endl;
+		return 1;
+	}
+
+	file_length = file.tellg();
+	file.seekg(0, std::ios_base::beg);
+	file.clear();
+
+	buf.resize(file_length);
+	file.read(&buf[0], file_length);
+	file.close();
+
+// file is ready now
+
+// remove whitespaces and punctuation
+	std::string out(buf.size(), 0);
+	std::remove_copy_if(buf.begin(), buf.end(), out.begin(), [](char &c){ return (ispunct(c) || isspace(c)); });
+
+// convert to upper case
+	for (auto &ch: out) {
+		if (isalpha(ch)) {
+			ch = toupper(ch);
+		}
+	}
+
+	cout << out << endl;
+	out.resize(strlen(out.c_str()) + 1);
+
+	std::string tr(3, 0);
+	std::map<std::string, std::vector<int> > dict;
+	size_t pos = 0;
+	size_t find_pos = 0;
+
+	cout << "Looking for coincidences: " << endl;
+	while (pos + 3 < out.length()) {
+	//    cout << "Traversing iteration [" << pos << "]..." << endl;
+		std::vector<int> match_offsets;
+		tr.assign(out, pos, 3);  
+		//cout << tr << ": ";
+
+		find_pos = pos + 1;
+		do {
+			find_pos = out.find(tr, find_pos);
+			if (std::string::npos != find_pos) {
+				//cout << find_pos - pos << ", ";
+				match_offsets.push_back(find_pos - pos);
+			} else break;
+			find_pos++;
+		}
+		while (true);
+
+	   pos++;
+
+	   if (match_offsets.empty())
+			continue;
+
+		// insert to map
+		auto ret = dict.insert(std::pair<std::string, std::vector<int> >(tr, match_offsets));
+		if (ret.second == false) {
+			cout << "element " << tr << " existed" << endl;
+			auto it = dict.find(tr);
+			if (it != dict.end()) {
+				it->second.insert(it->second.begin(), match_offsets.begin(), match_offsets.end());
+				cout << "successfully inserted\n" << endl;
+			}
+		}
+
+		match_offsets.clear();
+		//cout << endl;
+	}
+
+	int divisible_by[12] = {0};
+
+	for (auto &it: dict) {
+		cout << it.first << ": ";
+		for (auto i: it.second) {
+			cout << i << ", ";
+			for (int j = 1; j <= 12; j++) {
+				if ((i % j) == 0) {
+					divisible_by[j]++;
+				}
+			}
+		}
+		cout << endl;
+	}
+
+	int idx = 0;
+	for (auto i: divisible_by) {
+		cout << "Divisible by " << idx << ": " << i << "times" << endl;
+		idx++;
+	}
+
+	return 0;
+}

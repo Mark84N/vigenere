@@ -15,20 +15,46 @@ using std::endl;
 #define ENCRYPTED "encrypted2"
 #define FILENAME ENCRYPTED
 
-int main(int argc, char **argv)
+std::vector<double> letter_freq = {
+	8.12, /* A */
+	1.49,
+	2.71,
+	4.32,
+	12.02,
+	2.30,
+	2.03,
+	5.92,
+	7.31,
+	0.10,
+	0.69,
+	3.98,
+	2.61,
+	6.95,
+	7.68,
+	1.82,
+	0.11,
+	6.02,
+	6.28,
+	9.10,
+	2.88,
+	1.11,
+	2.09,
+	0.17,
+	2.11,
+	0.07 /* Z */
+};
+
+static inline int letter_to_idx(int letter)
+{
+	return letter - 'A';
+}
+
+static int read_file(const char *filename, std::string &buf)
 {
 	std::ifstream   file;
-	std::string     buf;
-	std::string		file_name;
 	std::streampos  file_length;
 
-	if (argc >= 2) {
-		file_name.assign(argv[1]);
-	} else {
-		file_name.assign(FILENAME);
-	}
-
-	file.open(file_name.c_str(), std::ios::in | std::ios::ate);
+	file.open(filename, std::ios::in | std::ios::ate);
 	if (!file.is_open()) {
 		cerr << "Failed to open file \"" << FILENAME << "\"" << endl;
 		return 1;
@@ -41,6 +67,25 @@ int main(int argc, char **argv)
 	buf.resize(file_length);
 	file.read(&buf[0], file_length);
 	file.close();
+
+	return 0;
+}
+
+int main(int argc, char **argv)
+{
+	std::string     buf;
+	std::string		file_name;
+
+	if (argc >= 2) {
+		file_name.assign(argv[1]);
+	} else {
+		file_name.assign(FILENAME);
+	}
+
+	if (read_file(file_name.c_str(), buf)) {
+		cerr << "Reading failed, exit" << endl;
+		return 1;
+	}
 
 // remove whitespaces and punctuation
 	std::string out(buf.size(), 0);

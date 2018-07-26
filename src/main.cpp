@@ -16,7 +16,7 @@ using std::endl;
 #define ENCRYPTED "encrypted2"
 #define FILENAME ENCRYPTED
 
-std::vector<double> letter_freq = {
+std::vector<double> eng_normal_freq = {
 	8.12, /* A */
 	1.49,
 	2.71,
@@ -46,7 +46,7 @@ std::vector<double> letter_freq = {
 };
 
 /*
-* Will be used to access letter_freq by index
+* Will be used to access eng_normal_freq by index
 */
 static inline int letter_to_idx(int letter)
 {
@@ -57,7 +57,7 @@ static std::string remove_spaces_and_punct(const std::string &buf)
 {
 	std::string out(buf.size(), 0);
 	std::remove_copy_if(buf.begin(), buf.end(), out.begin(),
-				[](char c) { return (ispunct(c) || isspace(c)); });
+				[](char c) { return !isalpha(c); });
 	return out;
 }
 
@@ -80,69 +80,98 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-// remove whitespaces and punctuation + 
+// remove spaces and punctuation
 	std::string out(std::move(remove_spaces_and_punct(buf)));
 // convert to uppercase
 	std::for_each(out.begin(), out.end(), [](char &ch) { if (isalpha(ch)) ch = toupper(ch); });
 
-	//cout << out << endl;
 	out.resize(strlen(out.c_str()) + 1);
-	cout << out << endl;
+	//cout << out << endl;
 
 	int key_len_1 = get_key_len(out);
 	cout << "Key len1: " << key_len_1 << endl;
 
 /*
 	Now if key length was guessed correctly, then traversing the text with a step of key length, will produce
-	the sequence of chars, which were encrypted by the 1st letter of the key, and we would try to guess what is 
-	it based on the frequency of using each particular letter in English
+	the sequence of chars, which were encrypted by the same letter of the key, and we would try to guess what is 
+	it based on the using frequency of each particular English letter
 */
-	std::deque<int> traversal;
-	for (int i = 0; i < out.length(); i += key_len_1) {
-		traversal.push_back(out[i]);
-	}
-
-	// Calculate the qty of appearing of the each particular letter in the traversal
-	std::vector<int> appears(26, 0);
-	cout << "Traversal len is " << traversal.size();
-	for (char ch: traversal) {
-		if (isalpha(ch)) {
-			//cout << "Char " << x << " appears " << match << " times" << endl;
-			appears[letter_to_idx(ch)]++;
+	std::vector<int> traversal;
+	std::vector<double> freq_per_shift;
+	
+	int key_idx = 0;
+	for (int key_idx = 0; key_idx < key_len_1; key_idx++) {
+		
+		int shift = 0;
+		/* new traversal on each iteration */
+		// ------------------------------------------------------------------
+		for (int i = key_idx; i < out.length(); i += key_len_1) {
+			traversal.push_back(out[i]);
 		}
-	}
-	cout << endl;
+		freq_per_shift.resize(traversal.size());
 
-
-	int j = 0;
-	do {
-		char curr = 'A';
-		std::vector<double> appear_freq(26, .0);
-		for (int times_matched: appears) {
-			int idx = letter_to_idx(curr);
-			appear_freq[idx] = ((double)(times_matched) / (double)traversal.size());
-				
-			//cout << "1 Character \"" << curr << "\"" << " appears " << times_matched << " times, statically it is " << appear_freq[idx] << endl;
-
-			appear_freq[idx] *= letter_freq[idx];
-
-			//cout << "2 Character \"" << curr << "\"" << " appears " << times_matched << " times, statically it is " << appear_freq[idx] << endl;
-			curr++;
+		// Calculate the qty of appearing of the each particular letter in the traversal
+		std::vector<int> times_matched(26, 0);
+		cout << "Traversal len is " << traversal.size() << ", current traversal:";
+		for (char ch: traversal) {
+			cout << ch; 
+			if (isalpha(ch)) {
+				//cout << "Char " << x << " appears " << match << " times" << endl;
+				times_matched[letter_to_idx(ch)]++;
+			}
 		}
+		cout << endl;
 
-		double freq = .0;
-		std::for_each(appear_freq.begin(), appear_freq.end(), [&freq](double f) { freq += f; });
-		cout << "For shift " << j << ", freq sum is " << freq << endl;
-		// shift to the left
-		//int tmp = traversal.front();
-		//traversal.pop_front();
-		//traversal.push_back(j);
-		j++;
-	} while(j < traversal.size());
-	/* Keep aligning traversal results with a shift to the left size to get the largest possible valuet */
+		/* frequencies corresponding to each letter in a traversal */
+		std::deque<double> freq_per_traversal(traversal.size(), .0);
+		double traversal_size = traversal.size();		
+		
+		for (int i = 0; i < traversal.size(); i++) {
+			char ch = traversal[i];
+			freq_per_traversal[i] = times_matched[letter_to_idx(ch)] / traversal_size;
+			cout << "freq_per_traversal[" << i << "] = " << freq_per_traversal[i] << endl;
+		}
+		cout << "freq_per_traversal.len() = " << freq_per_traversal.size() << endl;
+/*	
+		Suppose:
+		traversal = { A, C, B }; remember - that are all digits from the input text, 
+		encoded with the same letter of the key, giving us Caesar cipher;
+		freq_per_traversal = { 0.15, 0.25, 0.6 }  -  usage per 1 traversal
 
+		after shift, freq_per_traversal = { 0.25, 0.6, 0.15 };
 
-	cout << endl;
+		multiplying corresponding freq_per_traversal by eng_normal_freq and summing results up, will
+		provide us of kinda probability value; comparing those values after all shiftings, the max one
+		will probably be the shift of corresponding letter in the key against original letter in the text
+*/
+		do {
+			double sum = 0;
+			for (int i = 0; i < traversal.size(); i++) {
+				char ch = traversal[i];
+				sum += freq_per_traversal[i] * (eng_normal_freq[letter_to_idx(ch)] / 100);
+			}
+			freq_per_shift[shift++] = sum;
+			cout << "Shifted " << shift << ", total sum of freq is " << sum << endl;
+			/* actual shift: move from the front to the end */
+			auto tmp = freq_per_traversal.front();
+			freq_per_traversal.pop_front();
+			freq_per_traversal.push_back(tmp);
+		} while(shift < traversal.size());
+
+/*		for (auto x: freq_per_shift) {
+			cout << "shift: freq = " << x << endl; 
+		}*/
+
+std::max_element(freq_per_shift.begin(), freq_per_shift.end());
+
+		traversal.clear();
+		freq_per_traversal.clear();
+		freq_per_shift.clear();
+		shift = 0;
+
+		
+		break;
+	}
 
 	return 0;
 }

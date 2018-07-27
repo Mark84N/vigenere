@@ -45,7 +45,6 @@ std::vector<double> eng_normal_freq = {
 	0.07 /* Z */
 };
 
-
 /* 
 *	Will be used to access eng_normal_freq by index
 */
@@ -90,13 +89,15 @@ int main(int argc, char **argv)
 
 	int key_len_1 = get_key_len(out);
 	cout << "Key len1: " << key_len_1 << endl;
-
+	cout << out << endl << endl << endl;;
+	key_len_1 = 5;
 /*
 	Now if key length was guessed correctly, then traversing the text with a step of key length, will produce
 	the sequence of chars, which were encrypted by the same letter of the key, and we would try to guess what is 
 	it
 */
 	std::vector<int> traversal;
+	std::vector<int> key_shift;
 
 	int key_idx = 0;
 	for (int key_idx = 0; key_idx < key_len_1; key_idx++) {
@@ -113,7 +114,6 @@ int main(int argc, char **argv)
 		for (char ch: traversal) {
 			cout << ch; 
 			if (isalpha(ch)) {
-				//cout << "Char " << x << " appears " << match << " times" << endl;
 				times_matched[letter_to_idx(ch)]++;
 			}
 		}
@@ -126,8 +126,9 @@ int main(int argc, char **argv)
 		for (int i = 0; i < traversal.size(); i++) {
 			char ch = traversal[i];
 			freq_per_traversal[i] = times_matched[letter_to_idx(ch)] / traversal_size;
-			cout << "freq_per_traversal[" << i << "] = " << freq_per_traversal[i] << 
-			" (matched " << times_matched[letter_to_idx(ch)] <<  "times)"<< endl;
+			if (i < 50)
+				cout << "freq_per_traversal[" << i << "] = " << freq_per_traversal[i] << 
+				" (matched " << times_matched[letter_to_idx(ch)] <<  " times)"<< endl;
 		}
 		cout << "freq_per_traversal.len() = " << freq_per_traversal.size() << endl;
 /*	
@@ -153,10 +154,11 @@ int main(int argc, char **argv)
 			for (int i = 0; i < traversal.size(); i++) {
 				char ch = traversal[i];
 				sum += freq_per_traversal[i] * (eng_normal_freq[letter_to_idx(ch)] / 100);
-				if (i == 0)
-					cout << "Freq of Q: " << freq_per_traversal[i] * (eng_normal_freq[letter_to_idx(ch)] / 100) << endl;
 			}
-			cout << "Shifted " << shift << ", total sum of freq is " << sum << endl;
+			if (shift < 50)
+				cout << "Shifted " << shift << ", total sum of freq is " << sum << 
+				", freq top is " << freq_per_traversal.front() <<
+				", freq back is " << freq_per_traversal.back() << endl;
 
 			if (sum > max) {
 				max = sum;
@@ -170,13 +172,20 @@ int main(int argc, char **argv)
 		} while (shift < traversal.size());
 
 		cout << "target_dist == " << target_dist << " on max freq of " << max << endl;
-		cout << "Thus shift produced by key is most likely " << (target_dist + 0) % 26 << endl;
+		cout << "Thus shift produced by key is most likely " << target_dist % 26 << endl;
+		key_shift.push_back(target_dist % 26);
 
 		traversal.clear();
 		freq_per_traversal.clear();
+		times_matched.clear();
 		shift = 0;
-		break;
+		cout << endl << endl;
 	}
+	cout << "key shift: ";
+	for (auto x: key_shift) {
+		cout << x << " ";
+	}
+	cout << endl;
 
 	return 0;
 }

@@ -211,20 +211,13 @@ static void freq_analyse1(std::string &buf, int key_len)
 
 static void freq_analyse2(std::string &buf, int key_len)
 {
-	/*
+/*
 	Now if key length was guessed correctly, then traversing the text with a step of key length, will produce
 	the sequence of chars, which were encrypted by the same letter of the key, and we would try to guess what is 
 	it
 */
 	std::vector<int> traversal;
 	std::vector<int> key_shift;
-
-/*
-1. get traversal (letters encrypted with the same keys letter);
-2. calculate each letter frequency in traversal;
-3. multiply frequency of the letter(F) by statistical freq of using in English (S)
-4. shift (F) to the left and multiply by (S), but preserving order from step [3]
-*/
 
 	int key_idx = 0;
 	for (int key_idx = 0; key_idx < key_len; key_idx++) {
@@ -234,93 +227,46 @@ static void freq_analyse2(std::string &buf, int key_len)
 		}
 
 		/*[2]*/
-		std::vector<int> times_matched(26, 0);
-		cout << "Traversal len is " << traversal.size() << ", current traversal:";
+		std::vector<int> times_matched(25, 0);
+		cout << "Traversal len is " << traversal.size() << endl;
 		for (char ch: traversal) {
-			cout << ch; 
+			//cout << ch;
 			if (isalpha(ch)) {
 				times_matched[letter_to_idx(ch)]++;
 			}
 		}
-		cout << endl;
 
-		double traversal_size = traversal.size();
-		std::deque<double> freq_per_traversal(traversal_size, .0);
-		for (int i = 0; i < traversal_size; i++) {
-			char ch = traversal[i];
-			freq_per_traversal[i] = times_matched[letter_to_idx(ch)] / traversal_size;
-			if (i < 50)
-				cout << "freq_per_traversal[" << i << "] = " << freq_per_traversal[i] <<
-				" (matched " << times_matched[letter_to_idx(ch)] <<  " times)"<< endl;
+		std::deque<double> freq(25, 0);
+		int total_size = traversal.size();
+		for (int i = 0; i < 26; i++) {
+			freq[i] = (times_matched[i] / double(total_size));
 		}
-		cout << "freq_per_traversal.len() = " << freq_per_traversal.size() << endl;
-/*
-		Suppose:
-		traversal = { A, C, B }; remember - that are all digits from the input text, 
-		encoded with the same letter of the key, giving us Caesar cipher;
-		freq_per_traversal = { 0.15, 0.25, 0.6 }  -  usage per 1 traversal
 
-		after shift, freq_per_traversal = { 0.25, 0.6, 0.15 };
-
-		multiplying corresponding freq_per_traversal by eng_normal_freq and summing results up, will
-		provide us of kinda probability value; comparing those values after all shiftings, the max one
-		will probably be the shift of corresponding letter in the key against the original letter in the text
-*/
-		/*[3]*/
-		double sum = 0;
-		double max = 0;
-		int target_dist = 0;
+		double sum = .0, max = .0;
 		int shift = 0;
-
-		do {
-			sum = 0;
-
-			for (int i = 0; i < traversal.size(); i++) {
-				char ch = traversal[i];
-				sum += freq_per_traversal[i] * (eng_normal_freq[letter_to_idx(ch)] / 100);
-			}
-			if (shift < 50)
-				cout << "Shifted " << shift << ", total sum of freq is " << sum << 
-				", freq top is " << freq_per_traversal.front() <<
-				", freq back is " << freq_per_traversal.back() << endl;
+		/* for each shift of freq against alphabet */
+		for (int i = 0; i < 26; i++) {
+			sum = .0;
+			/* for each symbol in alphabet */
+			for (int j = 0; j < 26; j++)
+				sum += freq[j] * eng_normal_freq[j];
 
 			if (sum > max) {
 				max = sum;
-				target_dist = shift;
+				shift = i;
 			}
-			/* actual shift: move from the front to the end */
-			auto tmp = freq_per_traversal.front();
-			freq_per_traversal.pop_front();
-			freq_per_traversal.push_back(tmp);
-			shift++;
-		} while (shift < traversal.size());
 
-		/*cout << "target_dist == " << target_dist << " on max freq of " << max << endl;
-		cout << "Thus shift produced by key is most likely " << target_dist % 25 << endl;*/
-		key_shift.push_back(target_dist % 25);
-
+			/* do the shift */
+			auto tmp = freq.front();
+			freq.pop_front();
+			freq.push_back(tmp);
+		}
+		key_shift.push_back(shift);
 		traversal.clear();
-		freq_per_traversal.clear();
-		times_matched.clear();
-		shift = 0;
-		cout << endl << endl;
 	}
-	cout << "key shift: ";
+
 	for (auto x: key_shift) {
-		cout << x << " ";
+		cout << x << ", ";
 	}
-	cout << endl;
-
-	int k = 0;
-	for (char ch: buf) {
-		
-		if (k % key_len == 0) {
-			cout << char(ch - key_shift[0]);
-		} else cout << ch;
-
-		k++;
-		if (k % 5 == 0) cout << endl;
-	}
-
 	cout << endl;
 }

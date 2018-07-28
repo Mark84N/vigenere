@@ -99,9 +99,9 @@ int main(int argc, char **argv)
 	cout << "Key len1: " << key_len << endl;
 	//cout << buf << endl << endl << endl;
 	
-	freq_analyse1(buf, key_len);
+//	freq_analyse1(buf, key_len);
 
-//	freq_analyse2(buf, key_len_1);
+	freq_analyse2(buf, key_len);
 
 
 	return 0;
@@ -202,7 +202,6 @@ static void freq_analyse1(std::string &buf, int key_len)
 		for (int i = 'E' - 'A'; i > 0; i--) {
 			encrypted--;
 			if (encrypted < 'A') encrypted = 'Z';
-			cout << "step" << endl;
 		}
 		
 		cout << i + 1 << " letter of key is " << encrypted << " (integer " << int(encrypted) << ")" << endl;
@@ -223,8 +222,8 @@ static void freq_analyse2(std::string &buf, int key_len)
 /*
 1. get traversal (letters encrypted with the same keys letter);
 2. calculate each letter frequency in traversal;
-3. multiply frequency of the letter(1) by statistical freq of using in English (2)
-4. make a step: shift (1) to the left and multiply by (2), but preserving order from step [3]
+3. multiply frequency of the letter(F) by statistical freq of using in English (S)
+4. shift (F) to the left and multiply by (S), but preserving order from step [3]
 */
 
 	int key_idx = 0;
@@ -296,9 +295,9 @@ static void freq_analyse2(std::string &buf, int key_len)
 			shift++;
 		} while (shift < traversal.size());
 
-		cout << "target_dist == " << target_dist << " on max freq of " << max << endl;
-		cout << "Thus shift produced by key is most likely " << target_dist % 26 << endl;
-		key_shift.push_back(target_dist % 26);
+		/*cout << "target_dist == " << target_dist << " on max freq of " << max << endl;
+		cout << "Thus shift produced by key is most likely " << target_dist % 25 << endl;*/
+		key_shift.push_back(target_dist % 25);
 
 		traversal.clear();
 		freq_per_traversal.clear();
@@ -310,5 +309,18 @@ static void freq_analyse2(std::string &buf, int key_len)
 	for (auto x: key_shift) {
 		cout << x << " ";
 	}
+	cout << endl;
+
+	int k = 0;
+	for (char ch: buf) {
+		
+		if (k % key_len == 0) {
+			cout << char(ch - key_shift[0]);
+		} else cout << ch;
+
+		k++;
+		if (k % 5 == 0) cout << endl;
+	}
+
 	cout << endl;
 }

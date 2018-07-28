@@ -12,9 +12,6 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
-#define EXAMPLE "example"
-#define ENCRYPTED "encrypted2"
-#define FILENAME ENCRYPTED
 #define MAX_KEY_LEN 12 /* known beforehand */
 
 std::vector<double> eng_normal_freq = {
@@ -46,15 +43,28 @@ std::vector<double> eng_normal_freq = {
 	0.07 / 100 /* Z */
 };
 
-/* 
-*	Will be used to access eng_normal_freq by index
-*/
-static inline int letter_to_idx(int letter)
+static inline int alpha_to_idx(int ch)
 {
-	return letter - 'A';
+	return ch - 'A';
 }
 
-static std::string remove_not_letters(const std::string &buf)
+static inline char shift_left(char ch, int shift)
+{
+	int ch_idx = alpha_to_idx(ch);
+
+	return 'A' + (ch_idx >= shift? ch_idx - shift :
+									(ch_idx + (26 - shift)) % 25);
+}
+
+static inline char shift_right(char ch, int shift)
+{
+	int ch_idx = alpha_to_idx(ch);
+
+	return 'A' + (ch_idx + shift <= 25? ch_idx + shift :
+									(ch_idx + shift) % 25);
+}
+
+static std::string remove_not_alpha(const std::string &buf)
 {
 	std::string out(buf.size(), 0);
 	std::remove_copy_if(buf.begin(), buf.end(), out.begin(),
@@ -64,45 +74,45 @@ static std::string remove_not_letters(const std::string &buf)
 
 static int get_key_len(std::string &out);
 static int read_file(const char *filename, std::string &buf);
-static void freq_analyse1(std::string &buf, int key_len);
-static void freq_analyse2(std::string &buf, int key_len);
+static std::string freq_analyse1(std::string &buf, int key_len);
+static std::string freq_analyse2(std::string &buf, int key_len);
 
 int main(int argc, char **argv)
 {
 	std::string     raw_buf;
 	std::string		file_name;
 
-	if (argc >= 2) {
+	if (argc == 2) {
 		file_name.assign(argv[1]);
 	} else {
-		file_name.assign(FILENAME);
-	}
-
-	if (read_file(file_name.c_str(), raw_buf)) {
-		cerr << "Reading failed, exit" << endl;
+		cerr << "Incorrect number of arguments, terminate." << endl;
 		return 1;
 	}
 
-	std::string buf(std::move(remove_not_letters(raw_buf)));
+	if (read_file(file_name.c_str(), raw_buf)) {
+		cerr << "Reading failed, terminate." << endl;
+		return 1;
+	}
 
-	if (buf.empty())
-		cerr << "Error: Empty file or no alphabet characters present.\n" << endl;
+	std::string buf(std::move(remove_not_alpha(raw_buf)));
+
+	if (buf.empty()) {
+		cerr << "Empty file supplied or no alphabet characters present, terminate." << endl;
+		return 1;
+	}
 
 // convert to uppercase
 	std::for_each(buf.begin(), buf.end(), [](char &ch) { if (isalpha(ch)) ch = toupper(ch); });
-
 	buf.resize(strlen(buf.c_str()));
-	//cout << buf << endl;
-	cout << "Buffer: " << buf << endl;
 
 	int key_len = get_key_len(buf);
-	cout << "Key len1: " << key_len << endl;
-	//cout << buf << endl << endl << endl;
-	
-//	freq_analyse1(buf, key_len);
+	cout << "Key len: " << key_len << endl;
 
-	freq_analyse2(buf, key_len);
+	std::string key = freq_analyse1(buf, key_len);
+	cout << "KEY, algo 1 " << key << endl;
 
+	std::string res = freq_analyse2(buf, key_len);
+	cout << "KEY, algo 2 " << res << endl;
 
 	return 0;
 }
@@ -156,10 +166,9 @@ static int get_key_len(std::string &buf)
 	/* find most succesful match in the interval of possible key length */
 	auto max = std::max_element(match_per_shift.begin(), match_per_shift.begin() + MAX_KEY_LEN);
 	int start_idx = std::distance(match_per_shift.begin(), max);
-	cout << "index is " << start_idx << endl;
 
-	/* split matches to 12 parts , to get intervals between most successful ones */
-	std::vector<int> intervals_sum(13, 0);
+	/* split matches to 12 parts, to get intervals between most successful ones */
+	std::vector<int> intervals_sum(MAX_KEY_LEN, 0);
 	int matches_size = match_per_shift.size();
 	int num_attempts = (matches_size / MAX_KEY_LEN); /* let the same num of attempts for each possible key len */
 	for (int shift = 1; shift < MAX_KEY_LEN; shift++) {
@@ -177,47 +186,36 @@ static int get_key_len(std::string &buf)
 	return key_len;
 }
 
-static void freq_analyse1(std::string &buf, int key_len)
+static std::string freq_analyse1(std::string &buf, int key_len)
 {
-	const char arr[] = {"ABCDEFGHIJKLMNOPQRSTUVWXYZ"};
-	std::vector<int> times_matched(26, 0);
-	cout << "------------" << endl;
-	cout << "E - A == " << 'E' - 'A' << endl;
+	std::vector<int> times_matched(25, 0);
+	std::string key;
+
 	for (int i = 0; i < key_len; i++) {
 		for (int j = i; j < buf.length(); j += key_len) {
-			times_matched[letter_to_idx(buf[j])]++;
+			times_matched[alpha_to_idx(buf[j])]++;
 		}
-		char ch = 'A';
-		for (auto x: times_matched) {
-			cout << ch++ << ": " << x << endl;
-		}
-		cout << "------------" << endl;
+
 		auto it = std::max_element(times_matched.begin(), times_matched.end());
 		int idx = std::distance(times_matched.begin(), it);
 		char encrypted = 'A' + idx;
-		cout << "most frequent encrypted is " << encrypted << " character" << endl;
+		char ch = shift_left(encrypted, 'E' - 'A');
+		key.push_back(ch);
 		
-		//char target = letter_to_idx(encrypted) - ('E' - 'A');
-		//target = (target < 0? (target += 26) : target) + 'A';
-		for (int i = 'E' - 'A'; i > 0; i--) {
-			encrypted--;
-			if (encrypted < 'A') encrypted = 'Z';
-		}
-		
-		cout << i + 1 << " letter of key is " << encrypted << " (integer " << int(encrypted) << ")" << endl;
-		times_matched.assign(26, 0);
+		times_matched.assign(25, 0);
 	}
+
+	return key;
 }
 
-static void freq_analyse2(std::string &buf, int key_len)
+static std::string freq_analyse2(std::string &buf, int key_len)
 {
 /*
-	Now if key length was guessed correctly, then traversing the text with a step of key length, will produce
-	the sequence of chars, which were encrypted by the same letter of the key, and we would try to guess what is 
-	it
+	Now if key length was guessed correctly, then traversing the text with a step of key length [1], will produce
+	the sequence of chars, which were encrypted by the same letter of the key;
 */
 	std::vector<int> traversal;
-	std::vector<int> key_shift;
+	std::string key;
 
 	int key_idx = 0;
 	for (int key_idx = 0; key_idx < key_len; key_idx++) {
@@ -228,11 +226,9 @@ static void freq_analyse2(std::string &buf, int key_len)
 
 		/*[2]*/
 		std::vector<int> times_matched(25, 0);
-		cout << "Traversal len is " << traversal.size() << endl;
 		for (char ch: traversal) {
-			//cout << ch;
 			if (isalpha(ch)) {
-				times_matched[letter_to_idx(ch)]++;
+				times_matched[alpha_to_idx(ch)]++;
 			}
 		}
 
@@ -261,12 +257,10 @@ static void freq_analyse2(std::string &buf, int key_len)
 			freq.pop_front();
 			freq.push_back(tmp);
 		}
-		key_shift.push_back(shift);
+
+		key.push_back('A' + shift);
 		traversal.clear();
 	}
 
-	for (auto x: key_shift) {
-		cout << x << ", ";
-	}
-	cout << endl;
+	return key;
 }

@@ -15,6 +15,7 @@ using std::endl;
 #define EXAMPLE "example"
 #define ENCRYPTED "encrypted2"
 #define FILENAME ENCRYPTED
+#define MAX_KEY_LEN 12 /* known beforehand */
 
 std::vector<double> eng_normal_freq = {
 	8.12, /*A*/
@@ -63,10 +64,12 @@ static std::string remove_not_letters(const std::string &buf)
 
 static int get_key_len(std::string &out);
 static int read_file(const char *filename, std::string &buf);
+static void freq_analyse1(std::string &buf, int key_len);
+static void freq_analyse2(std::string &buf, int key_len);
 
 int main(int argc, char **argv)
 {
-	std::string     buf;
+	std::string     raw_buf;
 	std::string		file_name;
 
 	if (argc >= 2) {
@@ -75,23 +78,141 @@ int main(int argc, char **argv)
 		file_name.assign(FILENAME);
 	}
 
-	if (read_file(file_name.c_str(), buf)) {
+	if (read_file(file_name.c_str(), raw_buf)) {
 		cerr << "Reading failed, exit" << endl;
 		return 1;
 	}
 
-	std::string out(std::move(remove_not_letters(buf)));
+	std::string buf(std::move(remove_not_letters(raw_buf)));
+
+	if (buf.empty())
+		cerr << "Error: Empty file or no alphabet characters present.\n" << endl;
+
 // convert to uppercase
-	std::for_each(out.begin(), out.end(), [](char &ch) { if (isalpha(ch)) ch = toupper(ch); });
+	std::for_each(buf.begin(), buf.end(), [](char &ch) { if (isalpha(ch)) ch = toupper(ch); });
 
-	out.resize(strlen(out.c_str()) + 1);
-	//cout << out << endl;
+	buf.resize(strlen(buf.c_str()));
+	//cout << buf << endl;
+	cout << "Buffer: " << buf << endl;
 
-	int key_len_1 = get_key_len(out);
-	cout << "Key len1: " << key_len_1 << endl;
-	cout << out << endl << endl << endl;;
-	key_len_1 = 5;
+	int key_len = get_key_len(buf);
+	cout << "Key len1: " << key_len << endl;
+	//cout << buf << endl << endl << endl;
+	
+	freq_analyse1(buf, key_len);
+
+//	freq_analyse2(buf, key_len_1);
+
+
+	return 0;
+}
+
+static int read_file(const char *filename, std::string &buf)
+{
+	std::ifstream   file;
+	std::streampos  file_length;
+
+	file.open(filename, std::ios::in | std::ios::ate);
+	if (!file.is_open()) {
+		cerr << "Failed to open file \"" << filename << "\"" << endl;
+		return 1;
+	}
+
+	file_length = file.tellg();
+	file.seekg(0, std::ios_base::beg);
+	file.clear();
+
+	buf.resize(file_length);
+	file.read(&buf[0], file_length);
+	file.close();
+
+	return 0;
+}
+
+static int get_key_len(std::string &buf)
+{
 /*
+	Guess key length: step 1: on each loop interation, imagine we move the encrypted string by +1 to the right
+	against the original one: so char ORIGINAL[0] will correspond now SHIFTED[1] etc 
+	A A B X C Z D E
+	. A A B X C Z D E
+	Compare shifted symbol with the corresponding in the original; look for a coincidences: 
+	for instance, only A matches above. The trick is to find some kind of a pattern with the 
+	max count of matches, and the interval between most successful matches is probably a key length.
+*/
+	std::vector<int> match_per_shift;
+	int sum = 0;
+
+	for (int shift = 1; shift < buf.length(); shift++) {
+		for (int i = 0, j = shift; j < buf.length(); i++, j++) {
+			if (buf[i] == buf[j]) {
+				sum++;
+			}
+		}
+		match_per_shift.push_back(sum);
+		sum = 0;
+	}
+
+	/* find most succesful match in the interval of possible key length */
+	auto max = std::max_element(match_per_shift.begin(), match_per_shift.begin() + MAX_KEY_LEN);
+	int start_idx = std::distance(match_per_shift.begin(), max);
+	cout << "index is " << start_idx << endl;
+
+	/* split matches to 12 parts , to get intervals between most successful ones */
+	std::vector<int> intervals_sum(13, 0);
+	int matches_size = match_per_shift.size();
+	int num_attempts = (matches_size / MAX_KEY_LEN); /* let the same num of attempts for each possible key len */
+	for (int shift = 1; shift < MAX_KEY_LEN; shift++) {
+		int i = 0;
+		int j = start_idx;
+
+		for ( ; i < num_attempts && j < matches_size; i++, j += shift) {
+			intervals_sum[shift] += match_per_shift[j];
+		}
+	}
+
+	auto it = std::max_element(intervals_sum.begin(), intervals_sum.end());
+	int key_len = std::distance(intervals_sum.begin(), it);
+
+	return key_len;
+}
+
+static void freq_analyse1(std::string &buf, int key_len)
+{
+	const char arr[] = {"ABCDEFGHIJKLMNOPQRSTUVWXYZ"};
+	std::vector<int> times_matched(26, 0);
+	cout << "------------" << endl;
+	cout << "E - A == " << 'E' - 'A' << endl;
+	for (int i = 0; i < key_len; i++) {
+		for (int j = i; j < buf.length(); j += key_len) {
+			times_matched[letter_to_idx(buf[j])]++;
+		}
+		char ch = 'A';
+		for (auto x: times_matched) {
+			cout << ch++ << ": " << x << endl;
+		}
+		cout << "------------" << endl;
+		auto it = std::max_element(times_matched.begin(), times_matched.end());
+		int idx = std::distance(times_matched.begin(), it);
+		char encrypted = 'A' + idx;
+		cout << "most frequent encrypted is " << encrypted << " character" << endl;
+		
+		//char target = letter_to_idx(encrypted) - ('E' - 'A');
+		//target = (target < 0? (target += 26) : target) + 'A';
+		for (int i = 'E' - 'A'; i > 0; i--) {
+			encrypted--;
+			if (encrypted < 'A') encrypted = 'Z';
+			cout << "step" << endl;
+		}
+		
+		cout << i + 1 << " letter of key is " << encrypted << " (integer " << int(encrypted) << ")" << endl;
+		times_matched.assign(26, 0);
+	}
+}
+
+static void freq_analyse2(std::string &buf, int key_len)
+{
+	/*
 	Now if key length was guessed correctly, then traversing the text with a step of key length, will produce
 	the sequence of chars, which were encrypted by the same letter of the key, and we would try to guess what is 
 	it
@@ -99,16 +220,21 @@ int main(int argc, char **argv)
 	std::vector<int> traversal;
 	std::vector<int> key_shift;
 
-	int key_idx = 0;
-	for (int key_idx = 0; key_idx < key_len_1; key_idx++) {
-		
-		/* new traversal on each iteration */
-		for (int i = key_idx; i < out.length(); i += key_len_1) {
-			traversal.push_back(out[i]);
-		}
-/*		freq_per_shift.resize(traversal.size());
+/*
+1. get traversal (letters encrypted with the same keys letter);
+2. calculate each letter frequency in traversal;
+3. multiply frequency of the letter(1) by statistical freq of using in English (2)
+4. make a step: shift (1) to the left and multiply by (2), but preserving order from step [3]
 */
-		// Calculate the qty of appearing of the each particular letter in the traversal
+
+	int key_idx = 0;
+	for (int key_idx = 0; key_idx < key_len; key_idx++) {
+		/*[1]*/
+		for (int i = key_idx; i < buf.length(); i += key_len) {
+			traversal.push_back(buf[i]);
+		}
+
+		/*[2]*/
 		std::vector<int> times_matched(26, 0);
 		cout << "Traversal len is " << traversal.size() << ", current traversal:";
 		for (char ch: traversal) {
@@ -119,19 +245,17 @@ int main(int argc, char **argv)
 		}
 		cout << endl;
 
-		/* frequencies corresponding to each letter in a traversal */
-		std::deque<double> freq_per_traversal(traversal.size(), .0);
-		double traversal_size = traversal.size();		
-		
-		for (int i = 0; i < traversal.size(); i++) {
+		double traversal_size = traversal.size();
+		std::deque<double> freq_per_traversal(traversal_size, .0);
+		for (int i = 0; i < traversal_size; i++) {
 			char ch = traversal[i];
 			freq_per_traversal[i] = times_matched[letter_to_idx(ch)] / traversal_size;
 			if (i < 50)
-				cout << "freq_per_traversal[" << i << "] = " << freq_per_traversal[i] << 
+				cout << "freq_per_traversal[" << i << "] = " << freq_per_traversal[i] <<
 				" (matched " << times_matched[letter_to_idx(ch)] <<  " times)"<< endl;
 		}
 		cout << "freq_per_traversal.len() = " << freq_per_traversal.size() << endl;
-/*	
+/*
 		Suppose:
 		traversal = { A, C, B }; remember - that are all digits from the input text, 
 		encoded with the same letter of the key, giving us Caesar cipher;
@@ -143,6 +267,7 @@ int main(int argc, char **argv)
 		provide us of kinda probability value; comparing those values after all shiftings, the max one
 		will probably be the shift of corresponding letter in the key against the original letter in the text
 */
+		/*[3]*/
 		double sum = 0;
 		double max = 0;
 		int target_dist = 0;
@@ -186,90 +311,4 @@ int main(int argc, char **argv)
 		cout << x << " ";
 	}
 	cout << endl;
-
-	return 0;
-}
-
-static int read_file(const char *filename, std::string &buf)
-{
-	std::ifstream   file;
-	std::streampos  file_length;
-
-	file.open(filename, std::ios::in | std::ios::ate);
-	if (!file.is_open()) {
-		cerr << "Failed to open file \"" << filename << "\"" << endl;
-		return 1;
-	}
-
-	file_length = file.tellg();
-	file.seekg(0, std::ios_base::beg);
-	file.clear();
-
-	buf.resize(file_length);
-	file.read(&buf[0], file_length);
-	file.close();
-
-	return 0;
-}
-
-static int get_key_len(std::string &out)
-{
-/*
-	Guess key length: step 1: on each loop interation, imagine we move the encrypted string by +1 to the right
-	against the original one: so char ORIGINAL[0] will correspond now SHIFTED[1] etc 
-	A A B X C Z D E
-	. A A B X C Z D E
-	Compare shifted symbol with the corresponding in the original; look for a coincidences: 
-	for instance, only A matches above. The trick is to find some kind of a pattern with the 
-	max count of matches, and the interval between most successful matches is probably a key length
-*/
-
-	std::vector<int> coincidence;
-	int sum = 0;
-
-	for (int shift = 1; shift < out.length() - 1; shift++) {
-		for (int i = 0, j = shift; j < out.length() - 1; i++, j++) {
-			if (out[i] == out[j]) {
-				sum++;
-			}
-		}
-		coincidence.push_back(sum);
-		sum = 0;
-	}
-
-/* 	int shift = 1;
-	for (auto i: coincidence) {
-		cout << "shifted by " << shift++ << ": " << i << endl;
-		if (shift > 200)
-			break;
-	} */
-
-	/*
-		Guess key length: step 2: compare most successful matches and get the interval between them
-	*/
-	std::vector<int> freq_factor(13, 0);
-	for (int right = 11, left = 0; right <= (out.length() / 2);) {
-		/*cout << "Looking for range " << left << " element " << *(coincidence.begin() + left) << " ... " << 
-		right << " element " << *(coincidence.begin() + right) << ": ";*/
-		auto it = std::max_element(coincidence.begin() + left, coincidence.begin() + right + 1);
-		int distance = std::distance(coincidence.begin() + left, it) + 1;
-		//cout << "max element is " << *it << " distance is " << distance << endl;
-		left += 12;
-		right += 12;
-		freq_factor[distance]++;
-	}
-
-	int idx = 0;
-	int key_len_1 = 0, max1 = 0, max2 = 0, key_len_2 = 0;
-	for (auto x: freq_factor) {
-		if (x > max1) {
-			max2 = max1;
-			key_len_2 = key_len_1;
-			max1 = x;
-			key_len_1 = idx;
-		}
-		cout << idx++ << " : " << x << endl;
-	}
-
-	return key_len_1;
 }

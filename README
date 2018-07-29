@@ -1,0 +1,45 @@
+1.Project structure:
+.
+├── include
+│   └── vigenere.hpp
+├── input
+│   ├── long
+│   ├── medium
+│   └── short
+├── Makefile
+├── README
+├── run_test.sh
+└── src
+    ├── main.cpp
+    └── vigenere.cpp
+
+*running 'make' in the root dir creates executable 'vigenere'
+
+./vigenere 
+Usage: ./vigenere [options] file
+Options:
+         -e encode
+         -d decode
+         -k key (relevant for encode)
+
+Examples:
+./vigenere -e $file -k $key > $file.$key
+./vigenere -d $file.$key
+
+
+*input/{"short", "medium", "long"} are three samples of text, used for testing
+
+*'run_test.sh' is the test script, which:
+- iterates through the test files;
+- encodes each with three predefined keys (OPEN, SAMSUNG, INTELLIGENCE) using vigenere app;
+- decodes ciphertexts, and compare derived keys with the keys, used for encoding.
+
+2. Tools:
+system: Ubuntu 16.04.3 LTS
+compiler: g++ 5.4.0
+
+3. To run tests, use script; it doesn't expect arguments, just keep inside project root dir
+
+./run_test.sh
+
+Will produce output with the decryption results.

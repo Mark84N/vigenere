@@ -141,15 +141,6 @@ static int read_file(const char *filename, std::string &buf)
 
 static int get_key_len(std::string &buf)
 {
-/*
-	Guess key length: step 1: on each loop interation, imagine we move the encrypted string by +1 to the right
-	against the original one: so char ORIGINAL[0] will correspond now SHIFTED[1] etc 
-	A A B X C Z D E
-	. A A B X C Z D E
-	Compare shifted symbol with the corresponding in the original; look for a coincidences: 
-	for instance, only A matches above. The trick is to find some kind of a pattern with the 
-	max count of matches, and the interval between most successful matches is probably a key length.
-*/
 	std::vector<int> match_per_shift;
 	int sum = 0;
 
@@ -211,8 +202,9 @@ static std::string freq_analyse1(std::string &buf, int key_len)
 static std::string freq_analyse2(std::string &buf, int key_len)
 {
 /*
-	Now if key length was guessed correctly, then traversing the text with a step of key length [1], will produce
-	the sequence of chars, which were encrypted by the same letter of the key;
+	Now if key length was guessed correctly, then traversing the text with a step of key 
+	length [1], will produce the sequence of chars, which were encrypted with the same letter
+	of the key;
 */
 	std::vector<int> traversal;
 	std::string key;

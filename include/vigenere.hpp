@@ -16,6 +16,7 @@ int get_key_len(const string &out);
 string get_key_by_freq(const string &buf, int key_len);
 string normalize(const string &raw);
 string decode(const string &buf, const string &key);
+string encode(const string &buf, const string &key);
 
 static inline int alpha_to_idx(int ch)
 {
@@ -34,7 +35,8 @@ static inline char shift_right(char ch, int shift)
 {
 	int ch_idx = alpha_to_idx(ch);
 
-	return 'A' + ((ch_idx + shift) % 25);
+	return 'A' + (ch_idx + shift <= 25? ch_idx + shift : 
+								((ch_idx + shift) % 25) - 1);
 }
 
 static string remove_not_alpha(const string &buf)

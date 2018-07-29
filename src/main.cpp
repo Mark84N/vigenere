@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 {
 	char c;
 	COMMAND cmd;
-	string read_buf, in_key;
+	string rdbuf, in_key;
 	const char *filename;
 
 	if (argc < 2) {
@@ -55,11 +55,11 @@ int main(int argc, char **argv)
 			break;
 		case '?':
 			if (optopt == 'e' || optopt == 'd' || optopt == 'k')
-				fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+				cerr << "Option -" << optopt << " requires an argument." << endl; 
 			else if (isprint(optopt))
-				fprintf (stderr, "Unknown option '-%c'.\n", optopt);
+				cerr << "Unknown option -'" << optopt << "'." << endl;
 			else
-				fprintf (stderr, "Unknown option character '%d'.\n",	optopt);
+				cerr << "Unknown option character '-" << int(optopt) << "'" << endl;
 			return 1;
 		default:
 			abort();
@@ -70,30 +70,33 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (vigenere::read_file(filename, read_buf)) {
+	if (cmd == COMMAND::ENCODE && in_key.empty()) {
+		cerr << "Encoding requires a key (-k). Terminate." << endl;
+		return 1;
+	}
+
+	if (vigenere::read_file(filename, rdbuf)) {
 		cerr << "Reading failed, make sure file exists and not empty. Terminate." << endl;
 		return 1;
 	}
 
 	if (cmd == COMMAND::DECODE) {
-		string buf = vigenere::normalize(read_buf);
+		int key_len;
+		string buf, key;
+		
+		buf = vigenere::normalize(rdbuf);
 		if (buf.empty()) {
 			cerr << "No alphabet characters present. Terminate." << endl;
 			return 1;
 		}
 
-		int key_len = vigenere::get_key_len(buf);
-		cout << "Key len: " << key_len << endl;
-
-		string key = vigenere::get_key_by_freq(buf, key_len);
-		cout << "Key: " << key.c_str() << ", size " << key.size() << endl;
+		key_len = vigenere::get_key_len(buf);
+		key = vigenere::get_key_by_freq(buf, key_len);
+		cout << "Key: " << key << endl;
 		cout << "Decode: " << vigenere::decode(buf, key) << endl;
+
 	} else if (cmd == COMMAND::ENCODE) {
-		if (in_key.empty()) {
-			cerr << "Encoding requires a key. Terminate." << endl;
-		}
-		string encoded = vigenere::encode(read_buf, in_key);
-		cout << encoded << endl;
+		cout << vigenere::encode(rdbuf, in_key) << endl;
 	}
 
 	return 0;

@@ -48,7 +48,7 @@ int vigenere::read_file(const char *filename, string &buf)
 }
 
 /*
-	@brief guesses a key length which was used for encoding
+	@brief Guesses a key length which was used for encoding
 
 	@param buf - a string buffer with normalized ciphertext
 	@return key length on success, -1 on error
@@ -61,35 +61,37 @@ int vigenere::get_key_len(const string &buf)
 	std::vector<int> match_per_shift;
 	int sum = 0;
 
-	if (buf.empty()) {
+	if (buf.empty())
 		return -1;
-	}
 
+	/* imagine the buf is shifted by 1 to the right; find matches of the letters
+	which have same indexes between original buf and shifted one */
 	for (int shift = 1; shift < buf.length(); shift++) {
 		for (int i = 0, j = shift; j < buf.length(); i++, j++) {
-			if (buf[i] == buf[j]) {
+			if (buf[i] == buf[j])
 				sum++;
-			}
 		}
 		match_per_shift.push_back(sum);
 		sum = 0;
 	}
 
-	/* find most succesful match in the interval of possible key length */
+	/* most successful matches will have same interval - key length! */
 	auto max = std::max_element(match_per_shift.begin(), match_per_shift.begin() + MAX_KEY_LEN);
+	/* possible it is a start of the key */
 	int start_idx = std::distance(match_per_shift.begin(), max);
 
-	/* split matches to 12 parts, to get intervals between most successful ones */
+	/* starting from start_idx above, collect sum of matches
+	for shifts by possible key length (0-11] */
 	std::vector<int> intervals_sum(MAX_KEY_LEN, 0);
 	int matches_size = match_per_shift.size();
-	int num_attempts = (matches_size / MAX_KEY_LEN); /* let the same num of attempts for each possible key len */
+	int num_attempts = (matches_size / MAX_KEY_LEN); 
+	/* let the same num of attempts for each possible key len */
 	for (int shift = 1; shift < MAX_KEY_LEN; shift++) {
 		int i = 0;
 		int j = start_idx;
 
-		for ( ; i < num_attempts && j < matches_size; i++, j += shift) {
+		for ( ; i < num_attempts && j < matches_size; i++, j += shift)
 			intervals_sum[shift] += match_per_shift[j];
-		}
 	}
 
 	auto it = std::max_element(intervals_sum.begin(), intervals_sum.end());

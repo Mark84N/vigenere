@@ -66,8 +66,8 @@ int vigenere::get_key_len(const string &buf)
 
 	/* imagine the buf is shifted by 1 to the right; find matches of the letters
 	which have same indexes between original buf and shifted one */
-	for (int shift = 1; shift < buf.length(); shift++) {
-		for (int i = 0, j = shift; j < buf.length(); i++, j++) {
+	for (unsigned int shift = 1; shift < buf.length(); shift++) {
+		for (unsigned int i = 0, j = shift; j < buf.length(); i++, j++) {
 			if (buf[i] == buf[j])
 				sum++;
 		}
@@ -86,7 +86,7 @@ int vigenere::get_key_len(const string &buf)
 	int matches_size = match_per_shift.size();
 	int num_attempts = MAX_KEY_LEN * 2;
 	/* let the same num of attempts for each possible key len */
-	for (int shift = 1; shift <= MAX_KEY_LEN; shift++) {
+	for (unsigned int shift = 1; shift <= MAX_KEY_LEN; shift++) {
 		int i = 0;
 		int j = start_idx;
 
@@ -122,7 +122,7 @@ string vigenere::get_key_by_freq(const string &buf, int key_len)
 
 	/* collect letters which were encoded by the same letter of the key */
 	for (int i = 0; i < key_len; i++) {
-		for (int j = i; j < buf.length(); j += key_len) {
+		for (unsigned int j = i; j < buf.length(); j += key_len) {
 			times_matched[alpha_to_idx(buf[j])]++;
 		}
 		/* most frequent is likely to be an encrypted 'E' */
@@ -164,7 +164,7 @@ std::string vigenere::normalize(const string &raw)
 std::string vigenere::decode(const string &buf, const string &key)
 {
     string decoded(buf.length(), 0);
-    int i = 0;
+    unsigned int i = 0;
 
     std::transform(buf.begin(), buf.end(), decoded.begin(),
     [&key, &i](char x) {
@@ -186,7 +186,7 @@ std::string vigenere::decode(const string &buf, const string &key)
 string vigenere::encode(const string &buf, const string &key)
 {
 	string encoded(buf.length(), 0);
-    int i = 0;
+    unsigned int i = 0;
 
     std::transform(buf.begin(), buf.end(), encoded.begin(),
     [&key, &i](char x) {

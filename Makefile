@@ -1,6 +1,6 @@
 CC=g++
 OBJS=src/*
-CXX_FLAGS=-I include --std=c++11 
+CXX_FLAGS=-I include --std=c++11 -Wall -Werror -Wextra
 
 all: vigenere
 

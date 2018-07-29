@@ -38,15 +38,13 @@ static inline char shift_right(char ch, int shift)
 	return 'A' + (ch_idx + shift <= 25? ch_idx + shift :
 								((ch_idx + shift) % 25) - 1);
 }
-
-static string remove_not_alpha(const string &buf)
+static inline string remove_not_alpha(const string &buf)
 {
 	string out(buf.size(), 0);
 	std::remove_copy_if(buf.begin(), buf.end(), out.begin(),
 				[](char c) { return !isalpha(c); });
 	return out;
 }
-
 };
 
 #endif

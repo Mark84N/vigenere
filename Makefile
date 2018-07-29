@@ -8,5 +8,5 @@ vigenere:
 	$(CC) -o vigenere $(OBJS) $(CXX_FLAGS)
 
 clean:
-	rm *o vigenere 2>/dev/null
+	rm vigenere 2>/dev/null
 

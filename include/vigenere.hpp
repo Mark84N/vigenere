@@ -2,16 +2,20 @@
 #define VIGENGERE_HPP
 
 #include <string>
+#include <algorithm>
+#include <cctype>
 
 #define MAX_KEY_LEN 12 /* known beforehand */
 
 namespace vigenere
 {
+using std::string;
 
-int read_file(const char *filename, std::string &buf);
-int get_key_len(std::string &out);
-std::string get_key_by_freq(std::string &buf, int key_len);
-std::string decode(std::string &buf, std::string &key);
+int read_file(const char *filename, string &buf);
+int get_key_len(string &out);
+string get_key_by_freq(string &buf, int key_len);
+string normalize(string &raw);
+string decode(string &buf, string &key);
 
 static inline int alpha_to_idx(int ch)
 {
@@ -31,6 +35,14 @@ static inline char shift_right(char ch, int shift)
 	int ch_idx = alpha_to_idx(ch);
 
 	return 'A' + ((ch_idx + shift) % 25);
+}
+
+static string remove_not_alpha(const string &buf)
+{
+	string out(buf.size(), 0);
+	std::remove_copy_if(buf.begin(), buf.end(), out.begin(),
+				[](char c) { return !isalpha(c); });
+	return out;
 }
 
 };

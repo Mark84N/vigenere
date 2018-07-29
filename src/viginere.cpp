@@ -15,22 +15,29 @@ using std::cerr;
 using std::endl;
 using std::string;
 
-using namespace vigenere;
+/*
+	@brief Reads a file into buffer
 
+	@param filename - path to the file
+	@param buf - a string buffer to read to
+	@return 0 on success, non-zero on error
+*/
 int vigenere::read_file(const char *filename, string &buf)
 {
 	std::ifstream   file;
 	std::streampos  file_length;
 
 	file.open(filename, std::ios::in | std::ios::ate);
-	if (!file.is_open()) {
-		cerr << "Failed to open file \"" << filename << "\"" << endl;
+	if (!file.is_open())
 		return 1;
-	}
 
 	file_length = file.tellg();
 	file.seekg(0, std::ios_base::beg);
 	file.clear();
+
+	if (file_length == 0)
+		file.close();
+		return 1;
 
 	buf.resize(file_length);
 	file.read(&buf[0], file_length);
@@ -39,10 +46,23 @@ int vigenere::read_file(const char *filename, string &buf)
 	return 0;
 }
 
+/*
+	@brief guesses a key length which was used for encoding
+
+	@param buf - a string buffer with normalized ciphertext
+	@return key length on success, -1 on error
+
+	Note: expects input buffer to be normalized, i.e. only alphabetic
+	symbols uppercase, without punctuation, whitespaces and digits.
+*/
 int vigenere::get_key_len(string &buf)
 {
 	std::vector<int> match_per_shift;
 	int sum = 0;
+
+	if (buf.empty()) {
+		return -1;
+	}
 
 	for (int shift = 1; shift < buf.length(); shift++) {
 		for (int i = 0, j = shift; j < buf.length(); i++, j++) {
@@ -77,6 +97,21 @@ int vigenere::get_key_len(string &buf)
 	return key_len;
 }
 
+/*
+	@brief Derives a key used for encryption
+
+	@param buf - string with normalized ciphertext
+	@param key_len - key length
+	@return string with the key used for encryption
+
+	Note: it is a very simple method for getting a key; basically it works
+	on the assumption that the letter 'E' is the most  frequent in the original 
+	text (as in any other English text); 'E's frequency is 12.02% across English.
+	The closest is 'T' with 9.10% which make 'E' a well-defined choose.
+	
+	However, frequency analysis is very error-prone on small texts, and for better
+	results,the interaction with user is needed.
+*/
 string vigenere::get_key_by_freq(string &buf, int key_len)
 {
 	std::vector<int> times_matched(25, 0);
@@ -99,6 +134,29 @@ string vigenere::get_key_by_freq(string &buf, int key_len)
 	return key;
 }
 
+/*
+	@brief Removes non-alpha characters from the buffer
+
+	@param raw - string with the ciphertext
+	@return string with normalized ciphertext
+*/
+std::string vigenere::normalize(std::string &raw)
+{
+	string buf(std::move(remove_not_alpha(raw)));
+
+	std::for_each(buf.begin(), buf.end(), [](char &ch) { if (isalpha(ch)) ch = toupper(ch); });
+	buf.resize(strlen(buf.c_str()));
+
+	return buf;
+}
+
+/*
+	@brief Decodes ciphertext with the given key
+
+	@param buf - string with normalized ciphertext
+	@param key - string with the key that will be used for decryption
+	@return string with decoded text
+*/
 std::string vigenere::decode(std::string &buf, std::string &key)
 {
     string decoded(buf.length(), 0);

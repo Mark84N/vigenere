@@ -1,6 +1,12 @@
-SRC=src/*
+CC=g++
+OBJS=src/*
+CXX_FLAGS=-I include --std=c++11 
 
-all:
-	g++ --std=c++11 -o main $(SRC) -I include/
+all: vigenere
+
+vigenere:
+	$(CC) -o vigenere $(OBJS) $(CXX_FLAGS)
+
 clean:
-	rm *o main
+	rm *o vigenere 2>/dev/null
+

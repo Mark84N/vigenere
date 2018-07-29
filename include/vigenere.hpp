@@ -35,7 +35,7 @@ static inline char shift_right(char ch, int shift)
 {
 	int ch_idx = alpha_to_idx(ch);
 
-	return 'A' + (ch_idx + shift <= 25? ch_idx + shift : 
+	return 'A' + (ch_idx + shift <= 25? ch_idx + shift :
 								((ch_idx + shift) % 25) - 1);
 }
 

@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 
 	if (argc < 2) {
 		static std::stringstream ss;
-		ss << "Usage: " << argv[0] << " [options] file" << endl << 
+		ss << "Usage: " << argv[0] << " [options] file" << endl <<
 		"Options:" << endl <<
 		"\t -e encode" << endl <<
 		"\t -d decode" << endl <<
@@ -55,11 +55,11 @@ int main(int argc, char **argv)
 			break;
 		case '?':
 			if (optopt == 'e' || optopt == 'd' || optopt == 'k')
-				cerr << "Option -" << optopt << " requires an argument." << endl; 
+				cerr << "Option '-" << optopt << "'' requires an argument." << endl;
 			else if (isprint(optopt))
-				cerr << "Unknown option -'" << optopt << "'." << endl;
+				cerr << "Unknown option '-" << optopt << "'." << endl;
 			else
-				cerr << "Unknown option character '-" << int(optopt) << "'" << endl;
+				cerr << "Unknown option character '-" << int(optopt) << "'." << endl;
 			return 1;
 		default:
 			abort();
@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 	if (cmd == COMMAND::DECODE) {
 		int key_len;
 		string buf, key;
-		
+
 		buf = vigenere::normalize(rdbuf);
 		if (buf.empty()) {
 			cerr << "No alphabet characters present. Terminate." << endl;
@@ -94,7 +94,6 @@ int main(int argc, char **argv)
 		key = vigenere::get_key_by_freq(buf, key_len);
 		cout << "Key: " << key << endl;
 		cout << "Decode: " << vigenere::decode(buf, key) << endl;
-
 	} else if (cmd == COMMAND::ENCODE) {
 		cout << vigenere::encode(rdbuf, in_key) << endl;
 	}

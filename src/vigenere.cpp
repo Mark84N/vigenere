@@ -163,7 +163,7 @@ std::string vigenere::decode(const string &buf, const string &key)
     string decoded(buf.length(), 0);
     int i = 0;
 
-    std::transform(buf.begin(), buf.end(), decoded.begin(), 
+    std::transform(buf.begin(), buf.end(), decoded.begin(),
     [&key, &i](char x) {
         int shift = alpha_to_idx(key[i++]);
         if (i == key.length()) i = 0;
@@ -171,4 +171,29 @@ std::string vigenere::decode(const string &buf, const string &key)
     });
 
     return decoded;
+}
+
+/*
+	@brief Encodes input text with the key
+
+	@param buf - string with input text
+	@param key - a key which is used for encryption
+	@return	string with ciphertext
+*/
+string vigenere::encode(const string &buf, const string &key)
+{
+	string encoded(buf.length(), 0);
+    int i = 0;
+
+    std::transform(buf.begin(), buf.end(), encoded.begin(), 
+    [&key, &i](char x) {
+		if (isalpha(x)) {
+			int shift = alpha_to_idx(key[i++]);
+			if (i == key.length()) i = 0;
+			return shift_right(x, shift); 
+		}
+		return x;
+    });
+
+    return encoded;
 }

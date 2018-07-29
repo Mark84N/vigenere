@@ -12,6 +12,8 @@ using std::cerr;
 using std::endl;
 using std::string;
 
+using namespace vigenere;
+
 static string remove_not_alpha(const string &buf)
 {
 	string out(buf.size(), 0);
@@ -19,13 +21,6 @@ static string remove_not_alpha(const string &buf)
 				[](char c) { return !isalpha(c); });
 	return out;
 }
-
-/*
-int read_file(const char *filename, string &buf);
-int get_key_len(string &out);
-string get_key_by_freq(string &buf, int key_len);
-string decrypt(string &input, string &key);*/
-
 
 int main(int argc, char **argv)
 {
@@ -39,7 +34,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (read_file(file_name.c_str(), raw_buf)) {
+	if (vigenere::read_file(file_name.c_str(), raw_buf)) {
 		cerr << "Reading failed, terminate." << endl;
 		return 1;
 	}
@@ -58,7 +53,7 @@ int main(int argc, char **argv)
 	cout << "Key len: " << key_len << endl;
 
 	string key = get_key_by_freq(buf, key_len);
-	cout << "KEY: " << key.c_str() << ", size " << key.size() << endl;
+	cout << "Key: " << key.c_str() << ", size " << key.size() << endl;
 
 	cout << "Decode: " << decode(buf, key) << endl;
 	return 0;

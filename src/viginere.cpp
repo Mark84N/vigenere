@@ -15,7 +15,9 @@ using std::cerr;
 using std::endl;
 using std::string;
 
-int read_file(const char *filename, string &buf)
+using namespace vigenere;
+
+int vigenere::read_file(const char *filename, string &buf)
 {
 	std::ifstream   file;
 	std::streampos  file_length;
@@ -37,7 +39,7 @@ int read_file(const char *filename, string &buf)
 	return 0;
 }
 
-int get_key_len(string &buf)
+int vigenere::get_key_len(string &buf)
 {
 	std::vector<int> match_per_shift;
 	int sum = 0;
@@ -75,7 +77,7 @@ int get_key_len(string &buf)
 	return key_len;
 }
 
-string get_key_by_freq(string &buf, int key_len)
+string vigenere::get_key_by_freq(string &buf, int key_len)
 {
 	std::vector<int> times_matched(25, 0);
 	string key;
@@ -97,13 +99,13 @@ string get_key_by_freq(string &buf, int key_len)
 	return key;
 }
 
-std::string decode(std::string &buf, std::string &key)
+std::string vigenere::decode(std::string &buf, std::string &key)
 {
     string decoded(buf.length(), 0);
     int i = 0;
 
     std::transform(buf.begin(), buf.end(), decoded.begin(), 
-    [&key, &i](char &x) {
+    [&key, &i](char x) {
         int shift = alpha_to_idx(key[i++]);
         if (i == key.length()) i = 0;
         return shift_left(x, shift);

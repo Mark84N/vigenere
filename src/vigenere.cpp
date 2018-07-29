@@ -82,11 +82,11 @@ int vigenere::get_key_len(const string &buf)
 
 	/* starting from start_idx above, collect sum of matches, iterating
 	with a step of possible key length (0-11] */
-	std::vector<int> intervals_sum(MAX_KEY_LEN, 0);
+	std::vector<int> intervals_sum(MAX_KEY_LEN + 1, 0);
 	int matches_size = match_per_shift.size();
-	int num_attempts = (matches_size / MAX_KEY_LEN);
+	int num_attempts = MAX_KEY_LEN * 2;
 	/* let the same num of attempts for each possible key len */
-	for (int shift = 1; shift < MAX_KEY_LEN; shift++) {
+	for (int shift = 1; shift <= MAX_KEY_LEN; shift++) {
 		int i = 0;
 		int j = start_idx;
 
@@ -193,7 +193,8 @@ string vigenere::encode(const string &buf, const string &key)
 		if (isalpha(x)) {
 			int shift = alpha_to_idx(key[i++]);
 			if (i == key.length()) i = 0;
-			return shift_right(x, shift);
+			char ch = shift_right(toupper(x), shift);
+			return ch;
 		}
 		return x;
     });

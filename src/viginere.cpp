@@ -35,9 +35,10 @@ int vigenere::read_file(const char *filename, string &buf)
 	file.seekg(0, std::ios_base::beg);
 	file.clear();
 
-	if (file_length == 0)
+	if (file_length == 0) {
 		file.close();
 		return 1;
+	}
 
 	buf.resize(file_length);
 	file.read(&buf[0], file_length);
@@ -55,7 +56,7 @@ int vigenere::read_file(const char *filename, string &buf)
 	Note: expects input buffer to be normalized, i.e. only alphabetic
 	symbols uppercase, without punctuation, whitespaces and digits.
 */
-int vigenere::get_key_len(string &buf)
+int vigenere::get_key_len(const string &buf)
 {
 	std::vector<int> match_per_shift;
 	int sum = 0;
@@ -112,7 +113,7 @@ int vigenere::get_key_len(string &buf)
 	However, frequency analysis is very error-prone on small texts, and for better
 	results,the interaction with user is needed.
 */
-string vigenere::get_key_by_freq(string &buf, int key_len)
+string vigenere::get_key_by_freq(const string &buf, int key_len)
 {
 	std::vector<int> times_matched(25, 0);
 	string key;
@@ -140,7 +141,7 @@ string vigenere::get_key_by_freq(string &buf, int key_len)
 	@param raw - string with the ciphertext
 	@return string with normalized ciphertext
 */
-std::string vigenere::normalize(std::string &raw)
+std::string vigenere::normalize(const string &raw)
 {
 	string buf(std::move(remove_not_alpha(raw)));
 
@@ -157,7 +158,7 @@ std::string vigenere::normalize(std::string &raw)
 	@param key - string with the key that will be used for decryption
 	@return string with decoded text
 */
-std::string vigenere::decode(std::string &buf, std::string &key)
+std::string vigenere::decode(const string &buf, const string &key)
 {
     string decoded(buf.length(), 0);
     int i = 0;

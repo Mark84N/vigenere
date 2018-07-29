@@ -12,10 +12,10 @@ namespace vigenere
 using std::string;
 
 int read_file(const char *filename, string &buf);
-int get_key_len(string &out);
-string get_key_by_freq(string &buf, int key_len);
-string normalize(string &raw);
-string decode(string &buf, string &key);
+int get_key_len(const string &out);
+string get_key_by_freq(const string &buf, int key_len);
+string normalize(const string &raw);
+string decode(const string &buf, const string &key);
 
 static inline int alpha_to_idx(int ch)
 {

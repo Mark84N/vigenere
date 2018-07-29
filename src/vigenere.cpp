@@ -131,7 +131,6 @@ string vigenere::get_key_by_freq(const string &buf, int key_len)
 		char encrypted = 'A' + idx;
 		char ch = shift_left(encrypted, 'E' - 'A');
 		key.push_back(ch);
-
 		times_matched.assign(25, 0);
 	}
 

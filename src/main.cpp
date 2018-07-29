@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 {
 	char c;
 	COMMAND cmd;
-	string raw_buf, in_key;
+	string read_buf, in_key;
 	const char *filename;
 
 	if (argc < 2) {
@@ -45,16 +45,13 @@ int main(int argc, char **argv)
 		case 'e':
 			cmd = COMMAND::ENCODE;
 			filename = optarg;
-			cout << "ENCODE " << filename << endl; 
 			break;
 		case 'd':
 			cmd = COMMAND::DECODE;
 			filename = optarg;
-			cout << "DECODE " << filename << endl;
 			break;
 		case 'k':
 			in_key.assign(optarg);
-			cout << "Encoding with key: " << in_key << endl;
 			break;
 		case '?':
 			if (optopt == 'e' || optopt == 'd' || optopt == 'k')
@@ -73,23 +70,31 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (vigenere::read_file(filename, raw_buf)) {
+	if (vigenere::read_file(filename, read_buf)) {
 		cerr << "Reading failed, make sure file exists and not empty. Terminate." << endl;
 		return 1;
 	}
 
-	string buf = vigenere::normalize(raw_buf);
-	if (buf.empty()) {
-		cerr << "No alphabet characters present. Terminate." << endl;
-		return 1;
+	if (cmd == COMMAND::DECODE) {
+		string buf = vigenere::normalize(read_buf);
+		if (buf.empty()) {
+			cerr << "No alphabet characters present. Terminate." << endl;
+			return 1;
+		}
+
+		int key_len = vigenere::get_key_len(buf);
+		cout << "Key len: " << key_len << endl;
+
+		string key = vigenere::get_key_by_freq(buf, key_len);
+		cout << "Key: " << key.c_str() << ", size " << key.size() << endl;
+		cout << "Decode: " << vigenere::decode(buf, key) << endl;
+	} else if (cmd == COMMAND::ENCODE) {
+		if (in_key.empty()) {
+			cerr << "Encoding requires a key. Terminate." << endl;
+		}
+		string encoded = vigenere::encode(read_buf, in_key);
+		cout << encoded << endl;
 	}
 
-	int key_len = vigenere::get_key_len(buf);
-	cout << "Key len: " << key_len << endl;
-
-	string key = vigenere::get_key_by_freq(buf, key_len);
-	cout << "Key: " << key.c_str() << ", size " << key.size() << endl;
-
-	cout << "Decode: " << vigenere::decode(buf, key) << endl;
 	return 0;
 }
